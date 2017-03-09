@@ -1,0 +1,52 @@
+version: '2'
+
+services:
+  worker:
+    hostname: worker
+    build: .
+    environment:
+      - C_FORCE_ROOT=true
+    command: [
+      #"newrelic-admin", "run-program",
+      "celery", "worker",
+      "--app", "main",
+      "--hostname", "default@%h",
+      "--events",
+      "--loglevel", "info",
+      "-O", "fair",
+      #"--purge",
+    ]
+    volumes:
+      - .:/app
+    links:
+      - redis
+      - rabbitmq
+    stdin_open: true
+    tty: true
+
+  flower:
+    hostname: flower
+    build: .
+    command: [
+      "celery", "flower",
+      "--app", "main",
+      "--address=0.0.0.0",
+      "--port=5555"
+    ]
+    ports:
+      - "5555:5555"
+    links:
+      - redis
+      - rabbitmq
+
+  redis:
+    image: redis:3.2.8-alpine
+
+  rabbitmq:
+    image: rabbitmq:3.6.6-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
